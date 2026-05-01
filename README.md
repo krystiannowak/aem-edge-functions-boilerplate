@@ -251,6 +251,68 @@ logger.log(JSON.stringify({
 }));
 ```
 
+## Caching
+
+Edge Functions responses can be cached at the CDN layer. By default, caching behavior follows standard HTTP cache headers (`Cache-Control`, `Surrogate-Control`).
+
+### Surrogate Keys
+
+You can tag cached responses with surrogate keys to enable targeted cache purging. Add a `Surrogate-Key` header to your responses:
+
+```javascript
+return new Response(body, {
+  headers: {
+    'Surrogate-Key': 'page-home product-123',
+    'Cache-Control': 'public, max-age=3600'
+  }
+});
+```
+
+Multiple surrogate keys are separated by spaces.
+
+### Cache Override
+
+To control caching behavior from within your Edge Function code (e.g., for backend fetch calls), use [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/):
+
+```javascript
+import { CacheOverride } from "fastly:cache-override";
+
+const response = await fetch(request, {
+  backend: "my-origin",
+  cacheOverride: new CacheOverride({ ttl: 300 })
+});
+```
+
+### Purging Cache
+
+You can purge cached content for your Edge Function using the CLI:
+
+```
+# Purge by surrogate key
+aio aem edge-functions purge-cache <function-name> --surrogateKey my-page-key
+
+# Purge multiple surrogate keys
+aio aem edge-functions purge-cache <function-name> -k key1 -k key2
+
+# Purge all cached content (use with caution)
+aio aem edge-functions purge-cache <function-name> --all
+
+# Soft purge (stale content served while revalidating)
+aio aem edge-functions purge-cache <function-name> --surrogateKey my-key --soft
+```
+
+You can also purge surrogate keys programmatically from within your Edge Function code using the [`purgeSurrogateKey`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:compute/purgeSurrogateKey) function:
+
+```javascript
+import { purgeSurrogateKey } from "fastly:compute";
+
+// Hard purge (immediate removal)
+purgeSurrogateKey("my-page-key");
+
+// Soft purge (retain stale entries for revalidation)
+purgeSurrogateKey("my-page-key", true);
+```
+
 ## References
 
 https://www.fastly.com/documentation/guides/compute/
