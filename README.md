@@ -283,6 +283,17 @@ const response = await fetch(request, {
 });
 ```
 
+To bypass caching entirely and always fetch from the origin, use `pass` mode:
+
+```javascript
+import { CacheOverride } from "fastly:cache-override";
+
+const response = await fetch(request, {
+  backend: "my-origin",
+  cacheOverride: new CacheOverride({ mode: "pass" })
+});
+```
+
 ### Purging Cache
 
 You can purge cached content for your Edge Function using the CLI:
