@@ -251,6 +251,98 @@ logger.log(JSON.stringify({
 }));
 ```
 
+## Caching
+
+AEM Edge Functions sit between the CDN and the origin. There are **two distinct caches** in the request flow:
+
+```
+Browser → AEM CDN (CDN Cache) → AEM Edge Functions (Fetch Cache) → Origin
+```
+
+| Cache | What it caches | Influenced by | How to purge |
+|-------|---------------|---------------|--------------|
+| **CDN Cache** | The Edge Function's response to the browser | Response headers set by the Edge Function (`Cache-Control`, `Surrogate-Control`, `Surrogate-Key`) | [CDN Cache Purge API](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-cache-purge) |
+| **Edge Function Fetch Cache** | The origin's response to `fetch()` calls within the Edge Function | Origin response headers or [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/) on fetch calls | `aio aem edge-functions purge-cache` CLI command or `purgeSurrogateKey()` |
+
+### CDN Cache (Outer)
+
+The CDN cache sits between the browser and the Edge Function. It caches the Edge Function's **response**. You control its behavior by setting standard HTTP cache headers on your Edge Function responses:
+
+```javascript
+return new Response(body, {
+  headers: {
+    'Surrogate-Key': 'page-home product-123',
+    'Cache-Control': 'public, max-age=3600'
+  }
+});
+```
+
+Multiple surrogate keys are separated by spaces. These surrogate keys can be used to purge the CDN cache using the [CDN Cache Purge API](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-cache-purge).
+
+### Edge Function Fetch Cache (Inner)
+
+The Edge Function fetch cache sits between the Edge Function and the origin. It caches the **origin's response** to `fetch()` calls made within your Edge Function code.
+
+This cache is influenced by:
+- The origin's response headers (e.g., `Cache-Control` returned by the origin)
+- The [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/) option on your fetch calls
+
+To cache origin responses for a specific duration:
+
+```javascript
+import { CacheOverride } from "fastly:cache-override";
+
+const response = await fetch(request, {
+  backend: "my-origin",
+  cacheOverride: new CacheOverride({ ttl: 300 })
+});
+```
+
+To bypass the fetch cache entirely and always fetch from the origin, use `pass` mode:
+
+```javascript
+import { CacheOverride } from "fastly:cache-override";
+
+const response = await fetch(request, {
+  backend: "my-origin",
+  cacheOverride: new CacheOverride({ mode: "pass" })
+});
+```
+
+### Purging the Edge Function Fetch Cache
+
+The `purge-cache` CLI command purges the **Edge Function fetch cache** (the origin responses cached within the Edge Function). It does **not** purge the outer CDN cache.
+
+```
+# Purge by surrogate key
+aio aem edge-functions purge-cache <function-name> --surrogateKey my-page-key
+
+# Purge multiple surrogate keys
+aio aem edge-functions purge-cache <function-name> -k key1 -k key2
+
+# Purge all cached content (use with caution)
+aio aem edge-functions purge-cache <function-name> --all
+
+# Soft purge (stale content served while revalidating)
+aio aem edge-functions purge-cache <function-name> --surrogateKey my-key --soft
+```
+
+You can also purge surrogate keys programmatically from within your Edge Function code using the [`purgeSurrogateKey`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:compute/purgeSurrogateKey) function:
+
+```javascript
+import { purgeSurrogateKey } from "fastly:compute";
+
+// Hard purge (immediate removal)
+purgeSurrogateKey("my-page-key");
+
+// Soft purge (retain stale entries for revalidation)
+purgeSurrogateKey("my-page-key", true);
+```
+
+### Purging the CDN Cache
+
+To purge the outer CDN cache (the Edge Function's response cached at the CDN layer), use the [CDN Cache Purge API](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-cache-purge). This is the same purge mechanism used for all AEM Cloud Service content cached at the CDN.
+
 ## References
 
 https://www.fastly.com/documentation/guides/compute/
