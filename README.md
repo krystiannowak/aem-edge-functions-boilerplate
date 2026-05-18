@@ -262,7 +262,7 @@ Browser → AEM CDN (CDN Cache) → AEM Edge Functions (Fetch Cache) → Origin
 | Cache | What it caches | Influenced by | How to purge |
 |-------|---------------|---------------|--------------|
 | **CDN Cache** | The Edge Function's response to the browser | Response headers set by the Edge Function (`Cache-Control`, `Surrogate-Control`, `Surrogate-Key`) | [CDN Cache Purge API](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-cache-purge) |
-| **Edge Function Fetch Cache** | The origin's response to `fetch()` calls within the Edge Function | Origin response headers or [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/) on fetch calls | `aio aem edge-functions purge-cache` CLI command or `purgeSurrogateKey()` |
+| **Edge Function Fetch Cache** | The origin's response to `fetch()` calls within the Edge Function, **and** any data stored via the Core Cache API | Origin response headers or [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/) on fetch calls; surrogate keys assigned programmatically for Core Cache entries | `aio aem edge-functions purge-cache` CLI command or `purgeSurrogateKey()` |
 
 ### CDN Cache (Outer)
 
@@ -281,11 +281,14 @@ Multiple surrogate keys are separated by spaces. These surrogate keys can be use
 
 ### Edge Function Fetch Cache (Inner)
 
-The Edge Function fetch cache sits between the Edge Function and the origin. It caches the **origin's response** to `fetch()` calls made within your Edge Function code.
+The Edge Function fetch cache sits between the Edge Function and the origin. It caches the **origin's response** to `fetch()` calls made within your Edge Function code. It also holds any data your code stores via the **Core Cache API** or **Simple Cache API**.
 
 This cache is influenced by:
 - The origin's response headers (e.g., `Cache-Control` returned by the origin)
 - The [`CacheOverride`](https://js-compute-reference-docs.edgecompute.app/docs/fastly:cache-override/CacheOverride/) option on your fetch calls
+- Surrogate keys assigned programmatically when writing to the Core Cache API
+
+> **Important:** The `Surrogate-Key` header you set on your Edge Function's *outgoing response* to the browser controls the **outer CDN cache**, not this inner cache. Surrogate keys for the inner cache come from the origin's `Surrogate-Key` response header or from keys you assign when writing to the Core Cache API.
 
 To cache origin responses for a specific duration:
 
@@ -342,6 +345,21 @@ purgeSurrogateKey("my-page-key", true);
 ### Purging the CDN Cache
 
 To purge the outer CDN cache (the Edge Function's response cached at the CDN layer), use the [CDN Cache Purge API](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-cache-purge). This is the same purge mechanism used for all AEM Cloud Service content cached at the CDN.
+
+In the AEM as a Cloud Service architecture, Edge Functions receive traffic from the CDN via [origin selectors](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-configuring-traffic#origin-selectors). The complete request flow is:
+
+```
+Client → AEM CDN (VCL) → Origin Selector → Edge Function → Origin
+```
+
+The CDN caches the final response returned by the Edge Function. A CDN purge clears **only** that outer cached response — it has no effect on the Edge Function's internal caches. Similarly, the `purge-cache` command clears **only** the Edge Function's internal caches — it does not clear the CDN cache.
+
+> **Coordinating purges across both layers:** Because the Edge Function sits behind the CDN as a backend origin (reachable through origin selectors), these two caches operate independently:
+>
+> 1. Purging only the CDN cache causes the next request to invoke the Edge Function via the origin selector. If the Edge Function's fetch cache still holds stale data, it will return old content — which the CDN then caches again.
+> 2. Purging only the Edge Function cache clears internal state, but the CDN continues serving its previously cached copy until it expires or is separately purged.
+>
+> **Best practice:** When underlying data changes, purge **both** caches — use the CDN Cache Purge API for the outer layer and `purge-cache` (or `purgeSurrogateKey()`) for the inner Edge Function layer. Using consistent surrogate keys across both layers simplifies coordinated invalidation.
 
 ## References
 
