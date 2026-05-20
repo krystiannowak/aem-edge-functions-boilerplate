@@ -148,6 +148,16 @@ Adobe Managed CDN only offers remote logging as a way to debug your program. The
 aio aem edge-functions tail-logs <function-name>
 ```
 
+## List Edge Functions
+
+To list all Edge Functions configured for your environment:
+
+```
+aio aem edge-functions list
+```
+
+This displays a table with the name, active package ID, and timestamps of all available Edge Functions.
+
 ## Configuration
 
 ### Origins
