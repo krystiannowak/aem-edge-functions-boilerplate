@@ -183,7 +183,7 @@ const request = new Request("https://example.com/test");
 const response = await fetch(request, { backend: "my-origin-name" });
 ```
 
-> **Note:** Service stores (`configs`, `secrets`, and `kvs`) are not available in [sandbox programs](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/cloud-manager/getting-access-to-aem-in-cloud/introduction-sandbox-programs). Edge function services themselves run normally on sandbox environments — only the stores are not provisioned.
+> **Note:** Service stores (`configs`, `secrets`, and `kvs`) are not available in [sandbox programs](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/programs/introduction-sandbox-programs). Edge function services themselves run normally on sandbox environments — only the stores are not provisioned.
 
 ### Edge Function Environment Configuration
 
