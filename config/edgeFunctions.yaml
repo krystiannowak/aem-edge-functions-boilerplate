@@ -8,3 +8,5 @@ data:
   # secrets:
   #   - key: API_TOKEN
   #     value: ${{ API_TOKEN_SECRET }}
+  # Uncomment to enable a KV store
+  # kvs: true

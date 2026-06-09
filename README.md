@@ -7,6 +7,7 @@ This boilerplate serves as an example of what is possible to achieve with AEM Ed
 - Edge Functions service provisioning
 - Configurations usage (ConfigStore)
 - Secrets usage (SecretStore)
+- KV store usage (KVStore)
 - Logging
 - Log Tailing
 
@@ -67,6 +68,8 @@ data:
   # secrets:
   #   - key: API_TOKEN
   #     value: ${{ API_TOKEN_SECRET }}
+  # Uncomment to enable a KV store
+  # kvs: true
 ```
 
 The configuration is composed of:
@@ -74,6 +77,7 @@ The configuration is composed of:
 - **services**: contains a list of edge functions, where a function is composed of a **name** and a set of **origins**. The service name must be at most **30 characters** long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, and hyphens. The number of functions is limited to 3.
 - **configs**: contains a key/value configs arrays that will be exposed to all your edge functions
 - **secrets**: contains a key/value secrets arrays that will be exposed to all your edge functions
+- **kvs**: when set to `true`, provisions an empty KV store named `kv_default` that all your edge functions can read from and write to at runtime
 
 Additionally, you will need to define routing rules in your CDN configuration file (eg. cdn.yaml) using CDN origin selectors rules:
 
@@ -179,6 +183,8 @@ const request = new Request("https://example.com/test");
 const response = await fetch(request, { backend: "my-origin-name" });
 ```
 
+> **Note:** Service stores (`configs`, `secrets`, and `kvs`) are not available in [sandbox programs](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/using-cloud-manager/programs/introduction-sandbox-programs). Edge function services themselves run normally on sandbox environments — only the stores are not provisioned.
+
 ### Edge Function Environment Configuration
 
 Adobe Managed CDN allows you to use environment variable in your code through config store. Those environment variables can be defined in the edge functions configuration file under configs as an array of objects containing a key and a value fields.
@@ -230,6 +236,34 @@ const apiToken = await SecretStoreManager.getSecret('API_TOKEN');
 - key name are case-sensitive
 - **Secrets are immutable**
 - The secret store is shared between all your edge functions
+
+### Edge Function KV Store
+
+Adobe Managed CDN allows you to read and write arbitrary key-value data at runtime through a KV store. To enable it, set `kvs: true` in the edge functions configuration file:
+
+```
+kvs: true
+```
+
+This provisions an empty KV store named `kv_default`. You can interact with the store from your edge function code using the [Fastly KV Store API](https://js-compute-reference-docs.edgecompute.app/docs/fastly:kv-store/KVStore):
+
+```
+import { KVStore } from "fastly:kv-store";
+...
+const kv = new KVStore('kv_default');
+
+// Read a value
+const entry = await kv.get('visit-count');
+const count = entry ? Number(await entry.text()) : 0;
+
+// Write a value
+await kv.put('visit-count', String(count + 1));
+```
+
+**Notes:**
+- The KV store will always be named kv_default
+- The KV store is empty at provision time; populate it at runtime via the Fastly KV Store API (declarative key/value entries in `edgeFunctions.yaml` are not supported)
+- The KV store is shared between all your edge functions
 
 ### Logging
 
