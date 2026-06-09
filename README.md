@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This boilerplate serves as an example of what is possible to achieve with AEM Edge Functions. The repository contains a simple server that expose multiple endpoints and makes usage of:
+This boilerplate serves as an example of what is possible to achieve with AEM Edge Functions. The repository contains a simple server that exposes multiple endpoints and makes usage of:
 
 - Edge Functions service provisioning
 - Configurations usage (ConfigStore)
@@ -62,8 +62,7 @@ kind: "EdgeFunctions"
 version: "1"
 data:
   services:
-    - name: first-edge-function
-    - name: second-edge-function
+    - name: my-edge-function
   # Uncomment to enable secrets
   # secrets:
   #   - key: API_TOKEN
@@ -74,7 +73,7 @@ data:
 
 The configuration is composed of:
 
-- **services**: contains a list of edge functions, where a function is composed of a **name** and a set of **origins**. The service name must be at most **30 characters** long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, and hyphens. The number of functions is limited to 3.
+- **services**: contains a list of edge functions, where a function is composed of a **name** and a set of **origins**. The service name must be at most **30 characters** long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, and hyphens. The default limit is 1 function for AEM as a Cloud Service environments and 3 for Edge Delivery Services sites.
 - **configs**: contains a key/value configs arrays that will be exposed to all your edge functions
 - **secrets**: contains a key/value secrets arrays that will be exposed to all your edge functions
 - **kvs**: when set to `true`, provisions an empty KV store named `kv_default` that all your edge functions can read from and write to at runtime
@@ -87,23 +86,23 @@ version: '1'
 data:
   originSelectors:
     rules:
-      - name: route-to-first-edge-function
+      - name: route-weather-to-edge-function
         when: { reqProperty: path, equals: "/weather" }
         action:
           type: selectAemOrigin
-          originName: edgefunction-first-edge-function
-      - name: route-to-second-edge-function
+          originName: edgefunction-my-edge-function
+      - name: route-hello-world-to-edge-function
         when: { reqProperty: path, equals: "/hello-world" }
         action:
           type: selectAemOrigin
-          originName: edgefunction-second-edge-function
+          originName: edgefunction-my-edge-function
 ```
 
-**Note**: If you already have a CDN configuration file, just add the 2 origin selectors rules to your existing configuration
+**Note**: If you already have a CDN configuration file, just add the origin selectors rules to your existing configuration
 
 The origin selector rule enables you to route your traffic to your edge functions under your own conditions (such as routing a specific domain or only under a certain path). See [official documentation](https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/implementing/content-delivery/cdn-configuring-traffic#origin-selectors) to learn more about Origin Selector.
 
-Once you have created your configuration, you will need to commit your changes to your Git Repository and trigger the configuration pipeline. Once the configuration pipeline succeed, you should be able to access both your edge function services:
+Once you have created your configuration, you will need to commit your changes to your Git Repository and trigger the configuration pipeline. Once the configuration pipeline succeeds, you should be able to access your edge function endpoints:
 
 - *publish-pXXXXX-eYYYYY.adobeaemcloud.com/weather* or *example.com/weather*
 - *publish-pXXXXX-eYYYYY.adobeaemcloud.com/hello-world* or *example.com/hello-world*
