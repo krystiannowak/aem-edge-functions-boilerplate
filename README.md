@@ -61,7 +61,7 @@ Edge Functions creation is done via configuration file, you will need to create 
 kind: "EdgeFunctions"
 version: "1"
 data:
-  services:
+  functions:
     - name: my-edge-function
   # Uncomment to enable secrets
   # secrets:
@@ -73,7 +73,7 @@ data:
 
 The configuration is composed of:
 
-- **services**: contains a list of edge functions, where a function is composed of a **name** and a set of **origins**. The service name must be at most **30 characters** long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, and hyphens. The default limit is 1 function for AEM as a Cloud Service environments and 3 for Edge Delivery Services sites.
+- **functions**: contains a list of edge functions, where a function is composed of a **name** and a set of **origins**. The function name must be at most **30 characters** long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, and hyphens. The default limit is 1 function for AEM as a Cloud Service environments and 3 for Edge Delivery Services sites.
 - **configs**: contains a key/value configs arrays that will be exposed to all your edge functions
 - **secrets**: contains a key/value secrets arrays that will be exposed to all your edge functions
 - **kvs**: when set to `true`, provisions an empty KV store named `kv_default` that all your edge functions can read from and write to at runtime
