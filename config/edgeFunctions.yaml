@@ -1,7 +1,7 @@
 kind: "EdgeFunctions"
 version: "1"
 data:
-  services:
+  functions:
     - name: my-edge-function
   # Uncomment to enable secrets
   # secrets:
