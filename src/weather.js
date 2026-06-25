@@ -9,6 +9,8 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+// Open-Meteo.com API data are offered under Attibution 4.0 International (CC BY 4.0) license.
+// Please see https://open-meteo.com/en/licence for more information.
 
 /// <reference types="@fastly/js-compute" />
 
@@ -40,7 +42,7 @@ async function weatherHandler(req, client) {
         console.log("Weather API Response:\n", data);
         let resp = "No weather data available";
         if(data.current?.temperature_2m) {
-        resp = `It seems you are based in ${locationInfo.city} where the local temperature is ${data.current.temperature_2m}°C`;
+        resp = `It seems you are based in ${locationInfo.city} (Weather data by Open-Meteo.com - https://open-meteo.com/) where the local temperature is ${data.current.temperature_2m}°C`;
         }
         return new Response(resp, { status: 200, headers: { "Cache-Control": "max-age=5m" } });
     }
